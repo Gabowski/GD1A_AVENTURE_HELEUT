@@ -1,0 +1,863 @@
+<!doctype html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8" /><title>ZELDA LIKE</title>
+            <script
+            src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+            <style type="text/css"> body { margin: 0; }</style>
+        </head>
+        <body>
+            <script type="text/javascript">
+
+                class Acceuil extends Phaser.Scene {
+                    constructor() {
+                        super("Acceuil")
+                    }
+
+                    preload(){
+
+                        this.load.image("Title_Screen", "Assets/Interface_.png"); // Charger l'image d'acceuil
+
+                    }
+
+                    create(){
+
+                        this.imageAcceuil = this.physics.add.staticGroup();
+                        this.imageAcceuil.create(400, 225, 'Title_Screen').setScale(1); // Emplacement de l'image d'acceuil
+
+                        this.cursors = this.input.keyboard.createCursorKeys();
+
+                    }
+
+                    update(){
+
+                        if (this.cursors.space.isDown){ // En appyant sur la touche "espace"
+                            this.scene.start("Plaine"); // On passe de la scene de l'image d'acceuil à la scene "Plaine"
+                        }
+
+                    }
+                }
+
+                class Plaine extends Phaser.Scene {
+                    constructor() {
+                        super("Plaine")
+
+                        // Les variables
+
+                        this.gameOver = false;
+                        this.vieJoueur;
+                        this.player;    
+
+                        this.piece;
+                        this.powerUp;
+                        this.fireOn = false;
+                        this.petiteclee;
+                        this.score = 0;
+                        this.scoreText;
+                        this.cursors;
+                        this.groupeBoule;
+                        this.barreDeVie;
+                        this.barreInventaire;
+                        this.grandeclee;
+                        this.coffre;
+                        this.petitecleecollectee = false;
+                        this.portetemple;
+                        this.grandecleecollectee = false;
+                        this.nombrecollide = 3;
+                        this.invincible = false;
+                        this.compteur = 120;
+                        this.invincibleMonstre = false
+                        this.compteurMonstre = 120;
+                        this.nombrecollideMonstre = 3;
+                    }
+
+                    preload(){
+
+                        this.load.image("Phaser_tuilesdejeu", "Assets/ASSETS.png"); // Charger le png du tileset 
+
+                        this.load.tilemapTiledJSON("carte", "MAP..json"); // Charger la map tiled
+
+                        this.load.spritesheet('piece', 'Assets/Piece.png', // Charger la pièce
+                        { frameWidth: 32, frameHeight: 32});
+
+                        this.load.spritesheet("Monstre", "Assets/Monstre_spritesheet.png", 
+                        { frameWidth: 32, frameHeight: 32});
+
+                        this.load.spritesheet('Heros_', 'Assets/Heros_.png', // Charger le héros
+                        { frameWidth: 32, frameHeight: 32});
+
+                        ///// LES PV /////
+
+                        this.load.image("3hp", "Assets/3HP.png");
+                        this.load.image("2hp", "Assets/2HP.png");
+                        this.load.image("1hp", "Assets/1HP.png");
+
+                        ///// LES BOULES DE FEU /////
+
+                        this.load.image("feu_droit", "Assets/boule_droite.png");
+                        this.load.image("feu_bas", "Assets/boule_bas.png");
+                        this.load.image("feu_haut", "Assets/boule_haut.png");
+                        this.load.image("feu_gauche", "Assets/boule_gauche.png");
+
+                        ///// BARRE INVENTAIRE /////
+
+                        this.load.image("inventaire_0", "Assets/Inventaire_0.png");
+                        this.load.image("inventaire_1", "Assets/Inventaire_1.png");
+                        this.load.image("inventaire_2", "Assets/Inventaire_2.png");
+                        this.load.image("inventaire_3", "Assets/Inventaire_3.png");
+
+                        this.load.image("PowerUp", "Assets/Power_Up.png");
+
+                        this.load.image("Petite_Clee", "Assets/PetiteClee.png");
+
+                        this.load.image("Grande_Clee", "Assets/GrandeClee.png");
+
+                        this.load.image("coFFre", "Assets/Coffre.png");
+
+                        this.load.image("PorteTemple", "Assets/Portetemple.png");
+
+                    }
+
+                    create(){
+
+                        this.carteDuNiveau = this.add.tilemap('carte');
+
+                        this.cursors = this.input.keyboard.createCursorKeys();
+
+                        // Importer les Tileset
+                        this.tileset = this.carteDuNiveau.addTilesetImage(
+                            "ASSETS",
+                            "Phaser_tuilesdejeu"
+                            );
+
+                        // Importer les calques
+
+                        this.sol = this.carteDuNiveau.createLayer(
+                            "Terre",
+                            this.tileset
+                        );
+
+                        this.temple = this.carteDuNiveau.createLayer(
+                            "Temple",
+                            this.tileset
+                        );
+
+                        this.herbe = this.carteDuNiveau.createLayer(
+                            "Herbe",
+                            this.tileset
+                        );
+
+                        this.plante = this.carteDuNiveau.createLayer(
+                            "Plante",
+                            this.tileset
+                        );
+
+
+                        this.eau = this.carteDuNiveau.createLayer(
+                            "Eau",
+                            this.tileset
+                        );
+
+                        this.buisson = this.carteDuNiveau.createLayer(
+                            "Buisson",
+                            this.tileset
+                        );
+
+
+                        // Activer la propriété "estSolide"
+
+                        this.buisson.setCollisionByProperty({ estSolide: true }); 
+                        this.temple.setCollisionByProperty({ estSolide: true });
+
+
+                        this.cameras.main.setBounds(0, 0, 2048, 1536);
+                        this.physics.world.setBounds(0, 0, 2048, 1536);
+                        this.cameras.main.zoom = 2;
+
+                   
+                       
+                        this.player = this.physics.add.sprite(128, 1312, 'Heros_');
+                        this.player.setSize(17,14);
+                        this.player.setOffset(8,18);
+                        this.player.direction = "down";
+
+                        // Importer les calques après le heros, afin qu'il puisse passer derrière
+
+                        this.pierre = this.carteDuNiveau.createLayer(
+                            "Pierre",
+                            this.tileset
+                        );
+
+                        this.part1foret = this.carteDuNiveau.createLayer(
+                            "Foret 1 part 1",
+                            this.tileset
+                        );
+
+                        this.part2foret = this.carteDuNiveau.createLayer(
+                            "Foret 1 part 2",
+                            this.tileset
+                        );
+
+                        this.arbre = this.carteDuNiveau.createLayer(
+                            "Arbre",
+                            this.tileset
+                        );
+
+                        // Activer la propriété "estSolide"
+
+                        this.pierre.setCollisionByProperty({ estSolide: true });
+                        this.arbre.setCollisionByProperty({ estSolide: true });
+                        this.part1foret.setCollisionByProperty({ estSolide: true });
+                        this.part2foret.setCollisionByProperty({ estSolide: true});
+
+                        // Rendre solide
+
+                        this.physics.add.collider(this.player, this.arbre);
+                        this.physics.add.collider(this.player, this.part1foret);
+                        this.physics.add.collider(this.player, this.part2foret);
+                        this.physics.add.collider(this.player, this.pierre);
+                        this.physics.add.collider(this.player, this.buisson);
+                        this.physics.add.collider(this.player, this.temple);
+                        this.physics.add.collider(this.player, this.coffre);
+
+                        // Le joueur entrera en collistion avec les objets
+
+                        this.player.setBounce(0.2);
+                        this.player.setCollideWorldBounds(true);
+
+                        ///////// ANIMATIONS MORVAN /////////
+
+                        this.anims.create({
+                        key: 'left',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:4,end:7}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+
+                        this.anims.create({
+                        key: 'turn',
+                        frames: [ { key: 'Heros_', frame: 0 } ],
+                        frameRate: 20
+                        });
+
+                        this.anims.create({
+                        key: 'right',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:8,end:11}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+
+                        this.anims.create({
+                        key: 'top',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:12,end:15}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+
+                        this.anims.create({
+                        key: 'down',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:0,end:3}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+
+                        this.anims.create({
+                        key: 'tourner',
+                        frames: this.anims.generateFrameNumbers('piece', {start:0,end:5}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+
+                        this.anims.create({
+                        key: 'leviter',
+                        frames: this.anims.generateFrameNumbers('Monstre', {start:0,end:7}),
+                        frameRate: 5,
+                        repeat: -1
+                        })
+
+                        this.cameras.main.startFollow(this.player); // La caméra suivera le joueur
+                        this.scoreText=this.add.text(200,115,'Score: 0',{fontSize:'32px',fill:'#000'}); // Affichage du score du joueur
+                        this.scoreText.setScrollFactor(0); // Affiche un texte à l’écran, pour le score
+
+
+                        this.groupeBoule =this.physics.add.group();
+                        this.score = 0;
+
+                        // Fonction pour afficher les pièces
+
+                        this.coins = this.physics.add.group({ 
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.powerUp = this.physics.add.group({ 
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.petiteclee = this.physics.add.group({ 
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.grandeclee = this.physics.add.group({
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.coffre = this.physics.add.group({
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.portetemple = this.physics.add.group({
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.monster = this.physics.add.group({
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('Pieces').objects.forEach((piece) => {
+                            const pieceSprite = this.coins.create(piece.x, piece.y-32, 'piece').setOrigin(0);
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('PowerUp').objects.forEach((PowerUp) => {
+                            const powerupSprite = this.powerUp.create(PowerUp.x, PowerUp.y-32, 'PowerUp').setOrigin(0);
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('Petite clee').objects.forEach((petite_clee) => {
+                            const petitecleeSprite = this.petiteclee.create(petite_clee.x, petite_clee.y-32, 'Petite_Clee').setOrigin(0);
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('Grande clee').objects.forEach((grande_clee) => {
+                            const grandecleeSprite = this.grandeclee.create(grande_clee.x, grande_clee.y-32, 'Grande_Clee').setOrigin(0);
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('Coffre').objects.forEach((coffre_) => {
+                            const coffreSprite = this.coffre.create(coffre_.x, coffre_.y-32, 'coFFre').setOrigin(0);
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('Porte_Temple').objects.forEach((portetemple_) => {
+                            const portetempleSprite = this.portetemple.create(portetemple_.x, portetemple_.y-32, 'PorteTemple').setOrigin(0);
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('Monstres').objects.forEach((Monster) => {
+                            const monstreSprite = this.monster.create(Monster.x, Monster.y-32, 'Monstre').setOrigin(0);
+                        });
+
+                        // Animation de la pièce qui tourne
+
+                        this.coins.playAnimation('tourner');
+                        this.monster.playAnimation('leviter');
+                        this.physics.add.collider(this.player, this.coins, collectPiece, null, this);
+                        this.physics.add.collider(this.player, this.powerUp, collectPowerUp, null, this);
+                        this.physics.add.collider(this.player, this.petiteclee, collectPetiteClee, null, this);
+                        this.physics.add.collider(this.player, this.grandeclee, collectGrandeClee, null, this);
+                        this.physics.add.collider(this.player, this.coffre, chest, null, this);
+                        this.physics.add.collider(this.player, this.portetemple, entrerTemple, null, this);
+                        this.physics.add.collider(this.player, this.monster, vieHeros, null, this);
+                        this.physics.add.collider(this.monster, this.groupeBoule, vieMonstres, null, this);
+
+                        this.barreDeVie = this.add.image(250, 310,'3hp').setScale(1);
+                        this.barreDeVie.setInteractive();
+                        this.barreDeVie.setScrollFactor(0);
+
+                        this.barreInventaire = this.add.image(550, 310,'inventaire_0').setScale(1);
+                        this.barreInventaire.setInteractive();
+                        this.barreInventaire.setScrollFactor(0);
+
+
+                    }
+
+                    update() {
+
+                        if (this.gameOver){return;}
+
+                        if (this.cursors.left.isDown){ // Si la touche gauche est appuyée
+                            this.player.setVelocityX(-160);
+                            this.player.setVelocityY(0); // Alors vitesse négative en X
+                            this.player.anims.play('left', true); // Et animation => gauche
+                            this.player.direction = "left";
+                        }
+                        else if (this.cursors.right.isDown){ // Sinon si la touche droite est appuyée
+                            this.player.setVelocityX(160);
+                            this.player.setVelocityY(0); // Alors vitesse positive en X
+                            this.player.anims.play('right', true); // Et animation => droite
+                            this.player.direction = "right";
+                        }
+                        else{
+                            this.player.setVelocityX(0);
+                        }
+
+                        if (this.cursors.up.isDown){ // Si la touche haut est appuyée
+                            this.player.setVelocityY(-160);
+                            this.player.setVelocityX(0); // Alors vitesse positive en Y
+                            this.player.anims.play('top', true); // Et animation => haut
+                            this.player.direction = "up";
+                        }
+                        else if (this.cursors.down.isDown){ // Si la touche bas est appuyée
+                            this.player.setVelocityY(160);
+                            this.player.setVelocityX(0); // Alors vitesse négative en Y
+                            this.player.anims.play('down', true) // Et animation => bas
+                            this.player.direction = "down";
+                        }
+                        else{
+                            this.player.setVelocityY(0);
+                        }
+
+                        if(this.player.body.velocity.x == 0 && this.player.body.velocity.y ==0){
+
+                            this.player.anims.play('turn'); // Animation fait face caméra
+
+                        }
+
+                        this.scoreText.setText('Score: ' + this.score)
+                        
+
+                        if (this.input.keyboard.checkDown(this.cursors.space,200)==true){this.tirer()}
+
+                        if (this.invincible == true){
+                            this.compteur --;
+                            if (this.compteur <= 0){
+                                this.invincible = false;
+                                this.compteur = 120;
+                                this.player.setTint(0xffffff);
+                            }
+                        }
+
+                        if (this.invincibleMonstre == true){
+                            this.compteurMonstre --;
+                            if (this.compteurMonstre <= 0){
+                                this.invincibleMonstre = false;
+                                this.compteurMonstre = 120;
+                                this.monster.setTint(0xffffff);
+                            }
+                        }
+                    
+                    }
+
+                    tirer() {
+                        
+                        if (this.fireOn == true){
+                            var boule;
+                            console.log(this.player.direction)
+
+                            if (this.player.direction == 'left') { 
+                                var boule = this.groupeBoule.create(this.player.x - 25, this.player.y - 4, 'feu_gauche');
+                                boule.setVelocity(-400,0);
+                            }
+                            if (this.player.direction == 'right') {
+                                var boule = this.groupeBoule.create(this.player.x + 25, this.player.y - 4, 'feu_droit'); 
+                                boule.setVelocity(400,0);
+                            }
+                            if (this.player.direction == 'up') {
+                                var boule = this.groupeBoule.create(this.player.x, this.player.y - 4, 'feu_haut');
+                                boule.setVelocity(0,-400);
+                            }
+                            if (this.player.direction == 'down') { 
+                                var boule = this.groupeBoule.create(this.player.x, this.player.y - 4, 'feu_bas');
+                                boule.setVelocity(0,400);
+                            }
+                        }
+                    }
+
+                }
+
+                class Temple extends Phaser.Scene {
+                    constructor() {
+                        super("Temple")
+
+                        // Les variables
+
+                        this.gameOver = false;
+                        this.vieJoueur;
+                        this.player;    
+
+                        this.piece;
+                        this.powerUp;
+                        this.fireOn = false;
+                        this.petiteclee;
+                        this.score = 0;
+                        this.scoreText;
+                        this.cursors;
+                        this.groupeBoule;
+                        this.barreDeVie;
+                        this.barreInventaire;
+                        this.grandeclee;
+                        this.coffre;
+                        this.petitecleecollectee = false;
+                        this.portetemple;
+                        this.grandecleecollectee = false;
+                        this.couronnecollectee == false;
+                    }
+
+                    preload() {
+
+                        this.load.image("Interieur_Temple", "Assets/INTERIEUR_TEMPLE.png"); // Charger le png du tileset 
+
+                        this.load.tilemapTiledJSON("Carte", "TEMPLE.json"); // Charger la map tiled
+
+                        this.load.spritesheet('piece', 'Assets/Piece.png', // Charger la pièce
+                        { frameWidth: 32, frameHeight: 32});
+
+                        this.load.spritesheet('Heros_', 'Assets/Heros_.png', // Charger le héros
+                        { frameWidth: 32, frameHeight: 32});
+
+                        ///// LES PV /////
+
+                        this.load.image("3hp", "Assets/3HP.png");
+                        this.load.image("2hp", "Assets/2HP.png");
+                        this.load.image("1hp", "Assets/1HP.png");
+
+                        ///// LES BOULES DE FEU /////
+
+                        this.load.image("Feu_droit", "Assets/boule_droite.png");
+                        this.load.image("Feu_bas", "Assets/boule_bas.png");
+                        this.load.image("Feu_haut", "Assets/boule_haut.png");
+                        this.load.image("Feu_gauche", "Assets/boule_gauche.png");
+
+                        ///// BARRE INVENTAIRE /////
+
+                        this.load.image("inventaire_0", "Assets/Inventaire_0.png");
+                        this.load.image("inventaire_1", "Assets/Inventaire_1.png");
+                        this.load.image("inventaire_2", "Assets/Inventaire_2.png");
+                        this.load.image("inventaire_3", "Assets/Inventaire_3.png");
+
+                        this.load.image("couronne_", "Assets/Couronne.png");
+
+                    }
+
+                    create() {
+
+                        this.carteDuNiveau = this.add.tilemap('Carte');
+
+                        this.cursors = this.input.keyboard.createCursorKeys();
+
+                        // Importer les Tileset
+                        this.tileset = this.carteDuNiveau.addTilesetImage(
+                            "Interieur_Temple",
+                            "Interieur_Temple"
+                            );
+
+                        // Importer les calques
+
+                        this.temple = this.carteDuNiveau.createLayer(
+                            "Interieur",
+                            this.tileset
+                        );
+
+                        // Activer la propriété "estSolide"
+
+                        this.temple.setCollisionByProperty({ estSolide: true });
+
+                        ///////// ANIMATIONS MORVAN /////////
+
+                        this.anims.create({
+                        key: 'left',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:4,end:7}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+                        this.anims.create({
+                        key: 'turn',
+                        frames: [ { key: 'Heros_', frame: 0 } ],
+                        frameRate: 20
+                        });
+                        this.anims.create({
+                        key: 'right',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:8,end:11}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+                        this.anims.create({
+                        key: 'top',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:12,end:15}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+                        this.anims.create({
+                        key: 'down',
+                        frames: this.anims.generateFrameNumbers('Heros_', {start:0,end:3}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+                        this.anims.create({
+                        key: 'tourner',
+                        frames: this.anims.generateFrameNumbers('piece', {start:0,end:5}),
+                        frameRate: 10,
+                        repeat: -1
+                        });
+
+                        this.couronne = this.physics.add.group({ 
+                            allowGravity: false,
+                            immovable: true
+                        });
+
+                        this.carteDuNiveau.getObjectLayer('Couronne').objects.forEach((Couronne_) => {
+                            const couronneSprite = this.couronne.create(Couronne_.x, Couronne_.y-32, 'couronne_').setOrigin(0);
+                        });
+
+                        this.physics.add.collider(this.player, this.temple);
+                        this.physics.add.collider(this.player, this.couronne, collectCouronne, null, this);
+
+                        this.scoreText=this.add.text(200,115,'Score: 0',{fontSize:'32px',fill:'#000'}); // Affichage du score du joueur
+                        this.scoreText.setScrollFactor(0); // Affiche un texte à l’écran, pour le score
+
+                        this.cameras.main.setBounds(0, 0, 480, 320);
+                        this.physics.world.setBounds(0, 0, 480, 320);
+                        this.cameras.main.zoom = 2;
+
+                        this.score = 0;
+
+                        this.player = this.physics.add.sprite(235, 240, 'Heros_');
+                        this.player.setSize(17,14);
+                        this.player.setOffset(8,18);
+                        this.player.direction = "down";
+
+                        this.player.setBounce(0.2);
+                        this.player.setCollideWorldBounds(true);
+                        this.cameras.main.startFollow(this.player);
+                
+                        this.barreDeVie = this.add.image(250, 310,'3hp').setScale(1)
+                        this.barreDeVie.setInteractive()
+                        this.barreDeVie.setScrollFactor(0);
+
+                        this.barreInventaire = this.add.image(550, 310,'inventaire_3').setScale(1);
+                        this.barreInventaire.setInteractive();
+                        this.barreInventaire.setScrollFactor(0);
+
+                    }
+
+                    update() {
+
+                        if (this.gameOver){return;}
+
+                        if (this.cursors.left.isDown){ // Si la touche gauche est appuyée
+                            this.player.setVelocityX(-160); // Alors vitesse négative en X
+                            this.player.anims.play('left', true); // Et animation => gauche
+                            this.player.direction = "left";
+                        }
+                        else if (this.cursors.right.isDown){ // Sinon si la touche droite est appuyée
+                            this.player.setVelocityX(160); // Alors vitesse positive en X
+                            this.player.anims.play('right', true); // Et animation => droite
+                            this.player.direction = "right";
+                        }
+                        else{
+                            this.player.setVelocityX(0);
+                        }
+
+                        if (this.cursors.up.isDown){ // Si la touche haut est appuyée
+                            this.player.setVelocityY(-160); // Alors vitesse positive en Y
+                            this.player.anims.play('top', true); // Et animation => haut
+                            this.player.direction = "up";
+                        }
+                        else if (this.cursors.down.isDown){ // Si la touche bas est appuyée
+                            this.player.setVelocityY(160) // Alors vitesse négative en Y
+                            this.player.anims.play('down', true) // Et animation => bas
+                            this.player.direction = "down";
+                        }
+                        else{
+                            this.player.setVelocityY(0);
+                        }
+
+                        if(this.player.body.velocity.x == 0 && this.player.body.velocity.y ==0){
+
+                            this.player.anims.play('turn'); // Animation fait face caméra
+
+                        }
+                       
+                        if (this.input.keyboard.checkDown(this.cursors.space,200)==true){this.tirer()}
+
+                        this.scoreText.setText('Score: ' + this.score)
+                        
+                        if (this.invincible == true){
+                            this.compteur --;
+                            if (this.compteur <= 0){
+                                this.invincible = false;
+                                this.compteur = 120;
+                                this.player.setTint(0xffffff);
+                            }
+                        }
+
+                    }
+
+                }
+
+                class Victory extends Phaser.Scene {
+                    constructor() {
+                        super("Victory")
+                    }
+                    
+
+                    preload(){
+
+                        this.load.image("Victory_Screen", "Assets/VICTORY.png"); // Charger l'image de Game Over
+
+                    }
+
+                    create(){
+
+                        this.imageAcceuil = this.physics.add.staticGroup();
+                        this.imageAcceuil.create(400, 225, 'Victory_Screen').setScale(1); // Emplacement de l'image de Game Over
+
+                    }
+
+                    update(){
+
+                    }
+                }
+
+                class GameOver extends Phaser.Scene {
+                    constructor() {
+                        super("GameOver")
+                    }
+                    
+
+                    preload(){
+
+                        this.load.image("GameOver_Screen", "Assets/GAME_OVER.png"); // Charger l'image de Game Over
+
+                    }
+
+                    create(){
+
+                        this.imageAcceuil = this.physics.add.staticGroup();
+                        this.imageAcceuil.create(401, 225, 'GameOver_Screen').setScale(1); // Emplacement de l'image de Game Over
+
+                    }
+
+                    update(){
+
+                    }
+
+                }
+
+                // Fonction pour collecter des pièces
+
+                function collectPiece(player, piece){
+                        
+                    piece.disableBody(true, true);
+                    player.scene.score += 1; // Augmente le score de 1
+                    
+                }
+
+                function collectPowerUp(player, powerUp){
+                        
+                    powerUp.disableBody(true, true);
+                    this.fireOn = true;
+                    this.powerUp_Inventaire = this.add.image(550, 310, 'inventaire_1').setScale(1);
+                    this.powerUp_Inventaire.setInteractive();
+                    this.powerUp_Inventaire.setScrollFactor(0);
+                }
+
+                function collectPetiteClee(player, petiteclee){
+                    
+                    petiteclee.disableBody(true, true);
+                    this.petitecleecollectee = true;
+                    this.petiteclee_Inventaire = this.add.image(550, 310, 'inventaire_2').setScale(1);
+                    this.petiteclee_Inventaire.setInteractive();
+                    this.petiteclee_Inventaire.setScrollFactor(0);
+
+                }
+
+                function collectGrandeClee(player, grandeclee){
+
+                    grandeclee.disableBody(true, true);
+                    this.grandecleecollectee = true;
+                    this.grandeclee_Inventaire = this.add.image(550, 310, 'inventaire_3').setScale(1);
+                    this.grandeclee_Inventaire.setInteractive();
+                    this.grandeclee_Inventaire.setScrollFactor(0);
+                }
+
+                function chest(player, coffre) {
+
+                    if (this.petitecleecollectee == true) {
+                        coffre.destroy();
+                    }
+                }
+
+                function entrerTemple (player, portetemple) {
+
+                    if (this.grandecleecollectee == true) {
+
+                        this.scene.start("Temple"); 
+                    }
+
+                }
+
+                function vieHeros (player,vieJoueur,barreDeVie){
+
+                    if (this.invincible == false){
+                        this.nombrecollide -=1;
+                        player.setTint(0xff0000);
+                        this.invincible = true
+                    }
+
+                    if (this.nombrecollide == 2){
+                        this.barreDeVie.setTexture("2hp");
+                        this.barreDeVie.setInteractive();
+                        this.barreDeVie.setScrollFactor(0);
+                    }
+
+                    if (this.nombrecollide == 1){
+                        this.barreDeVie.setTexture("1hp");
+                        this.barreDeVie.setInteractive();
+                        this.barreDeVie.setScrollFactor(0);
+                    }
+
+                    if (this.nombrecollide <= 0){
+                        this.scene.start("GameOver");
+                    }
+                }
+
+                function vieMonstres (monster){
+
+                    if (this.invincibleMonstre == false){
+                        this.nombrecollideMonstre -=1;
+                        monster.setTint(0xff0000);
+                        this.invincibleMonstre = true
+                    }
+
+                    if (this.nombrecollideMonstre == 0){
+                        monster.disableBody(true, true);
+                    }
+
+                }
+
+                function collectCouronne(player, couronne){
+
+                    this.couronnecollectee == true
+                    couronne.disableBody(true, true);
+                        
+                }
+
+                function Victoire(player, couronne){
+
+                    if (this.couronnecollectee == true) {
+                        this.scene.start("Victory");
+                    }
+                        
+                }
+                 
+                    var config = {
+                        pixelArt: true,
+                        type: Phaser.AUTO,
+                        width: 800,
+                        height: 450,
+                        physics: {
+                            default: 'arcade',
+                            arcade: {
+                                debug: false
+                            }
+                        },
+                        scene: [Acceuil,Plaine,Temple,Victory,GameOver]
+                    };
+
+                    new Phaser.Game(config);
+
+            </script>
+        </body>
+    </html>
